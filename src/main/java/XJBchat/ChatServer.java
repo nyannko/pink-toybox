@@ -9,12 +9,13 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+import org.json.JSONArray;
 import org.json.JSONObject; // add to pom.xml
 
 public class ChatServer extends WebSocketServer {
 
     private Set<WebSocket> webSockets;
-    // <clientNickName, clientWebSocket>
+    private Set<String> onlineClientList;
     private Map<WebSocket, UserInfo> users;
     private Random rand;
 
@@ -36,9 +37,10 @@ public class ChatServer extends WebSocketServer {
     public ChatServer(InetSocketAddress addr) {
         super(addr);
         webSockets = new CopyOnWriteArraySet<>();
+        onlineClientList = new CopyOnWriteArraySet<>();
         users = new ConcurrentHashMap<>();
 
-        // for user name generator
+        // for username generator
         rand = new Random();
         lastNames = new ArrayList<>(
                 Arrays.asList("Lazy", "Angry", "Happy", "Scary", "Fancy", "Nasty", "Crying", "Silent"));
@@ -62,19 +64,44 @@ public class ChatServer extends WebSocketServer {
         String userNamePlaceHolder = userNameGenerator();
         UserInfo userInfo = new UserInfo(userNamePlaceHolder);
         users.put(webSocket, userInfo);
+        onlineClientList.add(userNamePlaceHolder);
 
         // send random generated nickname back to client
         JSONObject userInitInfo = createJSONReply(MessagePrefix.REGISTER, userInfo);
         webSocket.send(userInitInfo.toString());
+
+        // update client online list for others (SHOULD server send one client or the whole online list to client?)
+        JSONObject newClient = createJSONReply(MessagePrefix.UPDATE_NEW_CLIENT, userInfo);
+        handleBroadcast(webSocket, newClient);
     }
 
-    public JSONObject createJSONReply(String prefix, UserInfo userInfo) {
+    private JSONObject createJSONReply(String prefix, UserInfo userInfo) {
         JSONObject reply = new JSONObject();
         reply.put("prefix", prefix);
-        reply.put("name", userInfo.getName());
-        reply.put("message", userInfo.getMessage());
+        switch (prefix) {
+            case MessagePrefix.REGISTER:
+                createRegistrationReply(reply, userInfo);
+                break;
+            case MessagePrefix.UPDATE_NEW_CLIENT:
+                reply.put("newClient", userInfo.getName());
+                break;
+            case MessagePrefix.REMOVE_OFFLINE_CLIENT:
+                reply.put("offlineClient", userInfo.getName());
+                break;
+        }
         // todo: add timestamp
         return reply;
+    }
+
+
+    private void createRegistrationReply(JSONObject reply, UserInfo userInfo) {
+        reply.put("name", userInfo.getName());
+        reply.put("message", userInfo.getMessage());
+        JSONArray onlineClientArr = new JSONArray();
+        for (String onlineClient : onlineClientList) {
+            onlineClientArr.put(onlineClient);
+        }
+        reply.put("onlinelist", onlineClientArr);
     }
 
     // todo: improve username random generator
@@ -107,7 +134,7 @@ public class ChatServer extends WebSocketServer {
             case MessagePrefix.BROADCAST:
                 handleBroadcast(webSocket, jsonObject);
                 break;
-            case MessagePrefix.ONLINE_CLIENTS:
+            case MessagePrefix.UPDATE_NEW_CLIENT:
                 sendOnlineList(webSocket, jsonObject);
         }
     }
@@ -129,11 +156,21 @@ public class ChatServer extends WebSocketServer {
 
     @Override
     public void onClose(WebSocket webSocket, int i, String s, boolean b) {
-        System.out.println("onClose(), Server stop");
+        System.out.println("onClose(), client disconnected");
+
+        // remove client name from online list
+        String removedClientName = users.get(webSocket).getName();
+        onlineClientList.remove(removedClientName);
+        // broadcast again
+        UserInfo userInfo = new UserInfo(removedClientName);
+        JSONObject offlineClient = createJSONReply(MessagePrefix.REMOVE_OFFLINE_CLIENT, userInfo);
+        handleBroadcast(webSocket, offlineClient);
+
         webSockets.remove(webSocket);
         users.remove(webSocket);
         clientNumberDecrement();
-        System.out.println("remaining client: " + count);
+
+        System.out.println("remaining client number : " + count + " " + onlineClientList);
     }
 
     @Override
@@ -146,7 +183,6 @@ public class ChatServer extends WebSocketServer {
     }
 
     public void broadCast(String s) {
-        String message = "broadcast message";
         for (WebSocket w : webSockets) {
             w.send(s);
         }

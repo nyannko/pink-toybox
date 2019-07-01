@@ -2,20 +2,26 @@ package XJBchat;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class ChatClient extends WebSocketClient {
 
     private StartClientGUI gui;
     private String nickname;
+    // todo: better not String
+    private Set<String> onlineClients;
 
     public ChatClient(URI serverUri) {
         super(serverUri);
         nickname = "";
+        onlineClients = new CopyOnWriteArraySet<>();
     }
 
     public void setGUI(StartClientGUI gui) {
@@ -47,14 +53,23 @@ public class ChatClient extends WebSocketClient {
             case MessagePrefix.BROADCAST:
                 handleBroadcast(jsonObject);
                 break;
-            case MessagePrefix.ONLINE_CLIENTS:
-                handleOnlinelist(jsonObject);
+            case MessagePrefix.UPDATE_NEW_CLIENT:
+                handleUpdateNewClient(jsonObject);
+                break;
+            case MessagePrefix.REMOVE_OFFLINE_CLIENT:
+                handleRemoveOfflineClient(jsonObject);
                 break;
         }
     }
 
     private void handleRegister(JSONObject jsonObject) {
         nickname = jsonObject.getString("name");
+        JSONArray arr = jsonObject.getJSONArray("onlinelist");
+        for (int i = 0; i < arr.length(); i++) {
+            String client = arr.getString(i);
+            onlineClients.add(client);
+        }
+        System.out.println(onlineClients);
         gui.appendMessageBack(null, null, "Your nickname is " + nickname);
     }
 
@@ -66,7 +81,24 @@ public class ChatClient extends WebSocketClient {
         appendToGUI(name, message);
     }
 
-    private void handleOnlinelist(JSONObject jsonObject) {
+    private void handleUpdateNewClient(JSONObject jsonObject) {
+        String name = jsonObject.getString("newClient");
+        System.out.println(name + " is now online");
+        onlineClients.add(name);
+        int onlineClientsNum = onlineClients.size();
+
+        // append back to client GUI
+        System.out.println("online client number: " +  onlineClientsNum + " " + onlineClients);
+    }
+
+    private void handleRemoveOfflineClient(JSONObject jsonObject) {
+        String name = jsonObject.getString("offlineClient");
+        System.out.println(name + " is now offline");
+        onlineClients.remove(name);
+        int onlineClientsNum = onlineClients.size();
+
+        // append back to client GUI
+        System.out.println("remaining client number: " +  onlineClientsNum + " " + onlineClients);
     }
 
 
