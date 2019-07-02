@@ -1,30 +1,28 @@
 ## XJBchat
 
-A simple C/S chatapp made by Java-Websocket and Java swing.
+A simple C/S chat app made by Java-Websocket and Java swing.
 
 ### 1.TODO
 
 #### High priority
 
-* fix multiplexing constants
-* get online list(GUI)
-* use log but not print 
 * allow user registration(both backend and GUI)
-* allow pressing shift+enter to add a new line
-* wrap up components
-* fix timestamps for client and server(send and recv time)
+* chat room
 * allow sending images
+* allow pressing shift+enter to add a new line
+* fix timestamps for client and server(send and recv time)
 * server cache for offline clients
 * improve user random name generator
 * add find/add friend
-* chat room
 * end to end chat
 * wss
+* write tests
 
 #### Low priority
 
 * add database 
 * add frontend
+* AUI
 
 ---
 ### 2.DONE
@@ -38,6 +36,13 @@ A simple C/S chatapp made by Java-Websocket and Java swing.
 * use constants for client/server-side message demultiplexing
 * broadcast logic(server forward)
 
+02.07.2019
+
+* use log but not print (change pom.xml. Too many loggers disperse everywhere, no color for output text)
+* add eventqueue for GUI
+* get online list(GUI): `on_message()` and `close()`
+* fix multiplexing string constants
+
 ---
 ### 3.Configuration shit
 
@@ -45,3 +50,28 @@ A simple C/S chatapp made by Java-Websocket and Java swing.
 * [run two instances/compound in intellij](https://stackoverflow.com/a/35753820)
 * [export jar file](https://stackoverflow.com/questions/9689793/cant-execute-jar-file-no-main-manifest-attribute)
 * [JSONObject usage](https://www.testingexcellence.com/how-to-parse-json-in-java/)
+* [maven change the default project language level](https://stackoverflow.com/questions/27037657/stop-intellij-idea-to-switch-java-language-level-every-time-the-pom-is-reloaded)
+
+
+* [invalid source release: 8 in Intellij. What does it mean?](https://stackoverflow.com/a/26009627)
+* [SLF4J: Failed to load class “org.slf4j.impl.StaticLoggerBinder”](https://stackoverflow.com/a/50606584)
+* [SLF4J: enable debug level](https://stackoverflow.com/questions/30555432/logger-slf4j-is-not-using-the-logback-configured-level)
+* [Debug in Java](https://softwareengineering.stackexchange.com/a/176081)
+* [Loggers for multiple classed](https://stackoverflow.com/questions/7624895/how-to-use-log4j-with-multiple-classes)
+
+The logger has no color after configuration, shit.
+
+```java
+// test logger
+// logger.trace("Hello World");
+// logger.debug("Hello World");
+// logger.info("Hello World");
+// logger.warn("Hello World");
+// logger.error("Hello World");
+```
+
+### 4.Current state
+
+02.07.2019
+
+<img src="https://i.imgur.com/lE3ZhIu.gif">

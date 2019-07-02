@@ -11,6 +11,10 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.json.JSONArray;
 import org.json.JSONObject; // add to pom.xml
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 
 public class ChatServer extends WebSocketServer {
 
@@ -22,20 +26,26 @@ public class ChatServer extends WebSocketServer {
     private List<String> lastNames;
     private List<String> surNames;
 
+    private static Logger logger;
+
     private static int count;
 
     private static synchronized void clientNumberIncrement() {
         count++;
-        System.out.println("Connected client number: " + count); // change to log
+        logger.debug("Connected client number: " + count); // change to log
+
     }
 
     private static synchronized void clientNumberDecrement() {
         count--;
-        System.out.println("Connected client number: " + count); // change to log
+        logger.debug("Connected client number: " + count); // change to log
     }
 
     public ChatServer(InetSocketAddress addr) {
         super(addr);
+        logger = (Logger) LoggerFactory.getLogger(ChatServer.class);
+        logger.setLevel(Level.DEBUG);
+
         webSockets = new CopyOnWriteArraySet<>();
         onlineClientList = new CopyOnWriteArraySet<>();
         users = new ConcurrentHashMap<>();
@@ -50,12 +60,13 @@ public class ChatServer extends WebSocketServer {
 
     @Override
     public void onStart() {
-        System.out.println("onStart(), Server open on port: " + getPort());
+//        System.out.println("onStart(), Server open on port: " + getPort());
+        logger.info("onStart(), Server open on port: " + getPort());
     }
 
     @Override
     public void onOpen(WebSocket webSocket, ClientHandshake clientHandshake) {
-        System.out.println("Server onOpen()");
+        logger.debug("Server onOpen()");
 
         // add webSockets
         webSockets.add(webSocket);
@@ -67,26 +78,26 @@ public class ChatServer extends WebSocketServer {
         onlineClientList.add(userNamePlaceHolder);
 
         // send random generated nickname back to client
-        JSONObject userInitInfo = createJSONReply(MessagePrefix.REGISTER, userInfo);
+        JSONObject userInitInfo = createJSONReply(StringConstants.REGISTER, userInfo);
         webSocket.send(userInitInfo.toString());
 
         // update client online list for others (SHOULD server send one client or the whole online list to client?)
-        JSONObject newClient = createJSONReply(MessagePrefix.UPDATE_NEW_CLIENT, userInfo);
+        JSONObject newClient = createJSONReply(StringConstants.UPDATE_NEW_CLIENT, userInfo);
         handleBroadcast(webSocket, newClient);
     }
 
     private JSONObject createJSONReply(String prefix, UserInfo userInfo) {
         JSONObject reply = new JSONObject();
-        reply.put("prefix", prefix);
+        reply.put(StringConstants.PREFIX, prefix);
         switch (prefix) {
-            case MessagePrefix.REGISTER:
+            case StringConstants.REGISTER:
                 createRegistrationReply(reply, userInfo);
                 break;
-            case MessagePrefix.UPDATE_NEW_CLIENT:
-                reply.put("newClient", userInfo.getName());
+            case StringConstants.UPDATE_NEW_CLIENT:
+                reply.put(StringConstants.ONLINE_CLIENT, userInfo.getName());
                 break;
-            case MessagePrefix.REMOVE_OFFLINE_CLIENT:
-                reply.put("offlineClient", userInfo.getName());
+            case StringConstants.REMOVE_OFFLINE_CLIENT:
+                reply.put(StringConstants.OFFLINE_CLIENT, userInfo.getName());
                 break;
         }
         // todo: add timestamp
@@ -95,13 +106,13 @@ public class ChatServer extends WebSocketServer {
 
 
     private void createRegistrationReply(JSONObject reply, UserInfo userInfo) {
-        reply.put("name", userInfo.getName());
-        reply.put("message", userInfo.getMessage());
+        reply.put(StringConstants.NICKNAME, userInfo.getName());
+        reply.put(StringConstants.MESSAGE, userInfo.getMessage());
         JSONArray onlineClientArr = new JSONArray();
         for (String onlineClient : onlineClientList) {
             onlineClientArr.put(onlineClient);
         }
-        reply.put("onlinelist", onlineClientArr);
+        reply.put(StringConstants.ONLINE_LIST, onlineClientArr);
     }
 
     // todo: improve username random generator
@@ -124,17 +135,17 @@ public class ChatServer extends WebSocketServer {
         JSONObject jsonObject = new JSONObject(s);
 
         // get message prefix
-        String prefix = jsonObject.getString("prefix");
+        String prefix = jsonObject.getString(StringConstants.PREFIX);
 
         // demultiplexing
         switch (prefix) {
-            case MessagePrefix.REGISTER:
+            case StringConstants.REGISTER:
                 handleRegister(webSocket, jsonObject);
                 break;
-            case MessagePrefix.BROADCAST:
+            case StringConstants.BROADCAST:
                 handleBroadcast(webSocket, jsonObject);
                 break;
-            case MessagePrefix.UPDATE_NEW_CLIENT:
+            case StringConstants.UPDATE_NEW_CLIENT:
                 sendOnlineList(webSocket, jsonObject);
         }
     }
@@ -156,30 +167,30 @@ public class ChatServer extends WebSocketServer {
 
     @Override
     public void onClose(WebSocket webSocket, int i, String s, boolean b) {
-        System.out.println("onClose(), client disconnected");
+        logger.debug("onClose(), client disconnected");
 
         // remove client name from online list
         String removedClientName = users.get(webSocket).getName();
         onlineClientList.remove(removedClientName);
         // broadcast again
         UserInfo userInfo = new UserInfo(removedClientName);
-        JSONObject offlineClient = createJSONReply(MessagePrefix.REMOVE_OFFLINE_CLIENT, userInfo);
+        JSONObject offlineClient = createJSONReply(StringConstants.REMOVE_OFFLINE_CLIENT, userInfo);
         handleBroadcast(webSocket, offlineClient);
 
         webSockets.remove(webSocket);
         users.remove(webSocket);
         clientNumberDecrement();
 
-        System.out.println("remaining client number : " + count + " " + onlineClientList);
+        logger.debug("remaining client number : " + count + " " + onlineClientList);
     }
 
     @Override
     public void onError(WebSocket webSocket, Exception e) {
-        System.out.println("onError(), System error: " + e);
+        logger.debug("onError(), System error: " + e);
         webSockets.remove(webSocket);
         users.remove(webSocket);
         clientNumberDecrement();
-        System.out.println("remaining client: " + count);
+        logger.debug("remaining client: " + count);
     }
 
     public void broadCast(String s) {

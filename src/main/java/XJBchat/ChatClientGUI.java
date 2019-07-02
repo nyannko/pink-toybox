@@ -1,8 +1,12 @@
 package XJBchat;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import org.json.JSONObject;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
@@ -11,18 +15,23 @@ import java.awt.event.*;
 import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Set;
 
-public class StartClientGUI {
+public class ChatClientGUI extends JFrame {
 
     private URI serverUri;
     private ChatClient client;
-    private StartClientGUI gui;
+    private ChatClientGUI gui;
     private String clientName;
 
     // GUI component
     private JFrame mainFrame;
     private JPanel controlPanel;
+    private JPanel onlinePanel;
     private JLabel statusLabel;
+    private TitledBorder border;
+    private JScrollPane onlineScrollPanel;
+    private JList onlineList;
     private JTextPane textField;
     private JTextField typingField;
     private JButton connectButton;
@@ -34,20 +43,40 @@ public class StartClientGUI {
     SimpleAttributeSet myStyle;
     SimpleAttributeSet elseStyle;
 
+    // logger
+    private Logger logger;
 
-    public StartClientGUI(URI serverUri) {
+
+    public ChatClientGUI(URI serverUri) {
         // init GUI
-        prepareGUI();
+        prepareGUI(600, 400);
 
         // init client
         this.gui = this;
         this.serverUri = serverUri;
+
+        // logger
+        logger = (Logger) LoggerFactory.getLogger(ChatClientGUI.class);
+        logger.setLevel(Level.DEBUG);
     }
 
-    private void prepareGUI() {
+    public ChatClientGUI(URI serverUri, int width, int height) {
+        prepareGUI(width, height);
+
+        this.gui = this;
+        this.serverUri = serverUri;
+
+        // logger
+        logger = (Logger) LoggerFactory.getLogger(ChatServer.class);
+        logger.setLevel(Level.DEBUG);
+    }
+
+    private void prepareGUI(int width, int height) {
         String headerMessage = "Chat client";
         mainFrame = new JFrame(headerMessage);
-        mainFrame.setSize(600, 400);
+        mainFrame.setSize(width, height);
+        // todo: AUI
+//        mainFrame.setResizable(false);
 
         // exit button
         mainFrame.addWindowListener(new WindowAdapter() {
@@ -71,8 +100,17 @@ public class StartClientGUI {
         buttonGroup.add(closeButton);
 
         // create statusLabel, unused now
-        statusLabel = new JLabel();
-        statusLabel.setSize(700, 700);
+        // statusLabel = new JLabel("Online Users: 0 ");
+        // statusLabel.setSize(10, 10);
+
+        onlineList = new JList();
+        onlineScrollPanel = new JScrollPane(onlineList);
+
+        onlineScrollPanel.setPreferredSize(new Dimension(160, 100));
+        onlineScrollPanel.setBorder(new TitledBorder("Online Users: 0"));
+
+        mainFrame.getContentPane().add(BorderLayout.EAST, onlineScrollPanel);
+//        mainFrame.add(onlinePanel, BorderLayout.EAST);
 
         // create text field
         textField = new JTextPane();
@@ -87,7 +125,6 @@ public class StartClientGUI {
         controlPanel.add(sendButton);
         controlPanel.add(connectButton);
         controlPanel.add(closeButton);
-        controlPanel.add(statusLabel);
 
         mainFrame.getContentPane().add(BorderLayout.CENTER, scrollPane);
         mainFrame.getContentPane().add(BorderLayout.SOUTH, controlPanel);
@@ -129,7 +166,7 @@ public class StartClientGUI {
             insertText(textField, message + "\n", null);
 
             // send request to server
-            JSONObject request = client.createJSONRequest(MessagePrefix.BROADCAST, message);
+            JSONObject request = client.createJSONRequest(StringConstants.BROADCAST, message);
             client.send(request.toString());
         } else {
             insertText(textField, "Not connected...Please check the network status\n", null);
@@ -139,10 +176,10 @@ public class StartClientGUI {
     private void insertText(JTextPane textField, String s, SimpleAttributeSet attributeSet) {
         StyledDocument doc = textField.getStyledDocument();
         try {
-            System.out.println(attributeSet);
+            logger.debug("" + attributeSet);
             doc.insertString(doc.getLength(), s, attributeSet);
         } catch (Exception e) {
-            System.out.println(e);
+            logger.error("Exception: ", e);
         }
 
         scrollToBottom(scrollPane);
@@ -168,17 +205,21 @@ public class StartClientGUI {
             appendMessageBack(null, null, info);
             return;
         }
-        if (client != null && !client.isOpen()) {
+        if (!client.isOpen()) {
             String info = "Client has already closed";
-            System.out.println("Client has already closed");
+            logger.debug("Client has already closed");
             appendMessageBack(null, null, info);
             return;
         }
         client.close();
 
-        insertText(textField, "Client closed\n", null);
+        // remove from jList
+        DefaultListModel model = (DefaultListModel) onlineList.getModel();
+        model.clear();
 
-        statusLabel.setText("client " + clientName + " disconnect to server");
+        onlineScrollPanel.setBorder(new TitledBorder("Online Users: 0"));
+//        border.setTitle("Online Users: 0");
+        insertText(textField, "Client closed\n", null);
     }
 
     private void triggerConnectButton(String clientName) {
@@ -196,7 +237,6 @@ public class StartClientGUI {
         this.clientName = clientName;
     }
 
-
     // call by client
     public void appendMessageBack(String senderName, String timeStamp, String message) {
         if (senderName != null && timeStamp != null) {
@@ -204,6 +244,18 @@ public class StartClientGUI {
             insertText(textField, " " + timeStamp + "\n", elseStyle);
         }
         insertText(textField, message + "\n", null);
+    }
+
+    public void appendOnlineList(Set<String> onlineClients) {
+        DefaultListModel<String> model = new DefaultListModel<>();
+        for (String p : onlineClients) {
+            model.addElement(p);
+        }
+        onlineList.setModel(model);
+
+//        border = (TitledBorder) onlineScrollPanel.getBorder();
+//        border.setTitle("Online Users: " + model.size());
+        onlineScrollPanel.setBorder(new TitledBorder("Online Users: " + model.size()));
     }
 
     class ButtonClickListener implements ActionListener {
@@ -238,8 +290,5 @@ public class StartClientGUI {
         }
     }
 
-    public static void main(String[] args) {
-        URI serverUri = URI.create("ws://localhost:8877");
-        StartClientGUI gui = new StartClientGUI(serverUri);
-    }
+
 }

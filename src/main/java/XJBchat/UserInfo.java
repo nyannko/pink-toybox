@@ -5,7 +5,7 @@ import java.util.Set;
 public class UserInfo {
     private String name;
     private String message;
-    private String newClient;
+    private String newClient; // change var name
     private Set<String> onlineList;
 
     public UserInfo() {}
