@@ -74,4 +74,4 @@ The logger has no color after configuration, shit.
 
 02.07.2019
 
-<img src="https://i.imgur.com/lE3ZhIu.gif">
+<img src="https://raw.githubusercontent.com/nyannko/pink-toybox/master/pic/xjbchat001.gif">
