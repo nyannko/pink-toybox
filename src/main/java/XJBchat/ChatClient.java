@@ -8,7 +8,13 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Set;
@@ -51,6 +57,33 @@ public class ChatClient extends WebSocketClient {
         String s = "Connect to server: " + getURI();
         logger.debug(s);
         gui.appendMessageBack(null, null, s);
+    }
+
+    @Override
+    public void onMessage(ByteBuffer bytes) {
+        BufferedImage image = null;
+        try {
+            image = ImageIO.read(new ByteArrayInputStream(getByteArrayFromByteBuffer(bytes)));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        logger.debug("Received " + image.getHeight() + "x" + image.getWidth() + ": " + System.currentTimeMillis());
+
+        // todo: image filename generator
+        String fileName = "./pic/nyanko.jpg";
+        try {
+            ImageIO.write(image, "jpg", new File(fileName));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        gui.insertImage(fileName);
+    }
+
+    private static byte[] getByteArrayFromByteBuffer(ByteBuffer byteBuffer) {
+        byte[] bytesArray = new byte[byteBuffer.remaining()];
+        byteBuffer.get(bytesArray, 0, bytesArray.length);
+        return bytesArray;
     }
 
     @Override
@@ -140,6 +173,9 @@ public class ChatClient extends WebSocketClient {
 
     @Override
     public void onError(Exception e) {
+        // server may refused connection
+        gui.appendMessageBack(null, null,
+                "Server refused connection...please check the network status");
         logger.debug("Client error " + e);
     }
 

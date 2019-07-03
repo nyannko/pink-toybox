@@ -1,20 +1,27 @@
 package XJBchat;
 
 import org.java_websocket.WebSocket;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.json.JSONArray;
-import org.json.JSONObject; // add to pom.xml
+import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+
+import javax.imageio.ImageIO;
 
 public class ChatServer extends WebSocketServer {
 
@@ -32,13 +39,13 @@ public class ChatServer extends WebSocketServer {
 
     private static synchronized void clientNumberIncrement() {
         count++;
-        logger.debug("Connected client number: " + count); // change to log
+        logger.debug("Connected client number: " + count);
 
     }
 
     private static synchronized void clientNumberDecrement() {
         count--;
-        logger.debug("Connected client number: " + count); // change to log
+        logger.debug("Connected client number: " + count);
     }
 
     public ChatServer(InetSocketAddress addr) {
@@ -60,7 +67,6 @@ public class ChatServer extends WebSocketServer {
 
     @Override
     public void onStart() {
-//        System.out.println("onStart(), Server open on port: " + getPort());
         logger.info("onStart(), Server open on port: " + getPort());
     }
 
@@ -84,6 +90,28 @@ public class ChatServer extends WebSocketServer {
         // update client online list for others (SHOULD server send one client or the whole online list to client?)
         JSONObject newClient = createJSONReply(StringConstants.UPDATE_NEW_CLIENT, userInfo);
         handleBroadcast(webSocket, newClient);
+
+        // send welcome image
+        sendImage(webSocket);
+    }
+
+    // taken from https://stackoverflow.com/a/25096332
+    // file -> bytes[]
+    private void sendImage(WebSocket webSocket) {
+        BufferedImage image = null;
+        try {
+            image = ImageIO.read(new File("./pic/Neko.jpg"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        try {
+            ImageIO.write(image, "jpg", byteArrayOutputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        webSocket.send(byteArrayOutputStream.toByteArray());
+        logger.debug("image sent");
     }
 
     private JSONObject createJSONReply(String prefix, UserInfo userInfo) {
@@ -147,6 +175,7 @@ public class ChatServer extends WebSocketServer {
                 break;
             case StringConstants.UPDATE_NEW_CLIENT:
                 sendOnlineList(webSocket, jsonObject);
+                break;
         }
     }
 

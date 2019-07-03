@@ -43,6 +43,11 @@ A simple C/S chat app made by Java-Websocket and Java swing.
 * get online list(GUI): `on_message()` and `close()`
 * fix multiplexing string constants
 
+03.07.2019
+
+* refine logic for send/connect/close
+* send images from server to client GUI (file -> byte[] -> byteBuffer -> byte[] -> file -> show on GUI) 
+
 ---
 ### 3.Configuration shit
 
@@ -57,7 +62,7 @@ A simple C/S chat app made by Java-Websocket and Java swing.
 * [SLF4J: Failed to load class “org.slf4j.impl.StaticLoggerBinder”](https://stackoverflow.com/a/50606584)
 * [SLF4J: enable debug level](https://stackoverflow.com/questions/30555432/logger-slf4j-is-not-using-the-logback-configured-level)
 * [Debug in Java](https://softwareengineering.stackexchange.com/a/176081)
-* [Loggers for multiple classed](https://stackoverflow.com/questions/7624895/how-to-use-log4j-with-multiple-classes)
+* [Loggers for multiple classes](https://stackoverflow.com/questions/7624895/how-to-use-log4j-with-multiple-classes)
 
 The logger has no color after configuration, shit.
 

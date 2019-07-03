@@ -5,7 +5,7 @@ import java.net.URI;
 
 public class StartChatClient {
 
-    final static int clientSize = 3;
+    final static int clientNum = 3;
     final static int windowWidth = 800;
     final static int windowHeight = 400;
 
@@ -15,7 +15,7 @@ public class StartChatClient {
         // https://stackoverflow.com/a/22534931
         EventQueue.invokeLater(() ->
         {
-            for (int i = 0; i < clientSize; i++) {
+            for (int i = 0; i < clientNum; i++) {
                 new ChatClientGUI(serverUri);
             }
         });

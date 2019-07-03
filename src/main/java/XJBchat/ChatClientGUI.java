@@ -29,7 +29,6 @@ public class ChatClientGUI extends JFrame {
     private JPanel controlPanel;
     private JPanel onlinePanel;
     private JLabel statusLabel;
-    private TitledBorder border;
     private JScrollPane onlineScrollPanel;
     private JList onlineList;
     private JTextPane textField;
@@ -110,7 +109,6 @@ public class ChatClientGUI extends JFrame {
         onlineScrollPanel.setBorder(new TitledBorder("Online Users: 0"));
 
         mainFrame.getContentPane().add(BorderLayout.EAST, onlineScrollPanel);
-//        mainFrame.add(onlinePanel, BorderLayout.EAST);
 
         // create text field
         textField = new JTextPane();
@@ -151,9 +149,21 @@ public class ChatClientGUI extends JFrame {
         StyleConstants.setBold(elseStyle, true);
     }
 
+
     private void triggerSendButton() {
+        // check first connection && replicated connections
+        if (client == null || !client.isOpen()) {
+            String info = "Not connected...Please check the network status";
+            appendMessageBack(null, null, info);
+            return;
+        }
+
         String message = typingField.getText();
-        if (message.length() == 0) return;
+        if (message.length() == 0) {
+            String info = "Say something!";
+            appendMessageBack(null, null, info);
+            return;
+        }
 
         // set empty field
         typingField.setText("");
@@ -168,8 +178,6 @@ public class ChatClientGUI extends JFrame {
             // send request to server
             JSONObject request = client.createJSONRequest(StringConstants.BROADCAST, message);
             client.send(request.toString());
-        } else {
-            insertText(textField, "Not connected...Please check the network status\n", null);
         }
     }
 
@@ -200,11 +208,13 @@ public class ChatClientGUI extends JFrame {
     }
 
     private void triggerCloseButton() {
+        // check first connection
         if (client == null) {
             String info = "Client not connected";
             appendMessageBack(null, null, info);
             return;
         }
+        // check duplicated connections
         if (!client.isOpen()) {
             String info = "Client has already closed";
             logger.debug("Client has already closed");
@@ -218,22 +228,31 @@ public class ChatClientGUI extends JFrame {
         model.clear();
 
         onlineScrollPanel.setBorder(new TitledBorder("Online Users: 0"));
-//        border.setTitle("Online Users: 0");
         insertText(textField, "Client closed\n", null);
     }
 
     private void triggerConnectButton(String clientName) {
-        // boundary check: if client in not null and client is in use, reuse the same connection
-        if (client != null && client.isOpen()) return;
+        if (client != null && client.isOpen()) {
+            String info = "You are already connected to server, close current connection first";
+            logger.debug("Client has already closed");
+            appendMessageBack(null, null, info);
+            return;
+        }
 
         // otherwise, create a new socket for connection
         client = new ChatClient(serverUri);
-        client.connect();
-
         // prepare GUI for real-time message check
+        // this should be prepared before call connect() in order to receive exceptions from chat client
         client.setGUI(gui);
 
-        // set client status
+        client.connect();
+
+        // async..
+        if (!client.isOpen()) {
+            String info = "Connecting...";
+            appendMessageBack(null, null, info);
+        }
+
         this.clientName = clientName;
     }
 
@@ -246,6 +265,16 @@ public class ChatClientGUI extends JFrame {
         insertText(textField, message + "\n", null);
     }
 
+    // call by client
+    public void insertImage(String filePath) {
+        // align pic problematic
+//        insertText(textField, "sdf\n", null);
+        textField.insertIcon(new ImageIcon(filePath));
+
+        scrollToBottom(scrollPane);
+    }
+
+    // call by client
     public void appendOnlineList(Set<String> onlineClients) {
         DefaultListModel<String> model = new DefaultListModel<>();
         for (String p : onlineClients) {
@@ -253,8 +282,6 @@ public class ChatClientGUI extends JFrame {
         }
         onlineList.setModel(model);
 
-//        border = (TitledBorder) onlineScrollPanel.getBorder();
-//        border.setTitle("Online Users: " + model.size());
         onlineScrollPanel.setBorder(new TitledBorder("Online Users: " + model.size()));
     }
 
