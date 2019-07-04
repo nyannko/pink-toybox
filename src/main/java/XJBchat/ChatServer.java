@@ -1,7 +1,6 @@
 package XJBchat;
 
 import org.java_websocket.WebSocket;
-import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
@@ -44,6 +43,7 @@ public class ChatServer extends WebSocketServer {
     }
 
     private static synchronized void clientNumberDecrement() {
+        // todo : notice that client number >= 0
         count--;
         logger.debug("Connected client number: " + count);
     }
@@ -159,6 +159,7 @@ public class ChatServer extends WebSocketServer {
 
     @Override
     public void onMessage(WebSocket webSocket, String s) {
+        logger.debug(s);
         // deserialize string to JSONObject
         JSONObject jsonObject = new JSONObject(s);
 
@@ -216,6 +217,8 @@ public class ChatServer extends WebSocketServer {
     @Override
     public void onError(WebSocket webSocket, Exception e) {
         logger.debug("onError(), System error: " + e);
+        // Exceptions when server port already in use
+        if (webSocket == null) return;
         webSockets.remove(webSocket);
         users.remove(webSocket);
         clientNumberDecrement();

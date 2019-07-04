@@ -21,7 +21,7 @@ A simple C/S chat app made by Java-Websocket and Java swing.
 #### Low priority
 
 * add database 
-* add frontend
+* add frontend (maybe use react?!)
 * AUI
 
 ---
@@ -47,6 +47,9 @@ A simple C/S chat app made by Java-Websocket and Java swing.
 
 * refine logic for send/connect/close
 * send images from server to client GUI (file -> byte[] -> byteBuffer -> byte[] -> file -> show on GUI) 
+
+04.07.2019
+* add pure html + js  chat client
 
 ---
 ### 3.Configuration shit
