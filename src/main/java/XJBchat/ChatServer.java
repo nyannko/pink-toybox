@@ -136,6 +136,7 @@ public class ChatServer extends WebSocketServer {
     private void createRegistrationReply(JSONObject reply, UserInfo userInfo) {
         reply.put(StringConstants.NICKNAME, userInfo.getName());
         reply.put(StringConstants.MESSAGE, userInfo.getMessage());
+        reply.put(StringConstants.REGISTER_STATUS, userInfo.isRegisterStatus());
         JSONArray onlineClientArr = new JSONArray();
         for (String onlineClient : onlineClientList) {
             onlineClientArr.put(onlineClient);
@@ -184,6 +185,23 @@ public class ChatServer extends WebSocketServer {
     }
 
     private void handleRegister(WebSocket w, JSONObject jsonObject) {
+        String nickName = jsonObject.getString(StringConstants.NICKNAME);
+
+        // check username availability (dup, standard..)
+
+        boolean success = false;
+
+        UserInfo userInfo = new UserInfo(nickName);
+        // if success, store in map
+        if (success) {
+            userInfo.setRegisterStatus(true);
+            // switch to main frame
+        }
+        users.put(w, userInfo);
+
+        // send back conformation
+        JSONObject registerSuccess = createJSONReply(StringConstants.REGISTER, userInfo);
+        w.send(registerSuccess.toString());
     }
 
     public void handleBroadcast(WebSocket webSocket, JSONObject jsonObject) {

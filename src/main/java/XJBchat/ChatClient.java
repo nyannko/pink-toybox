@@ -22,6 +22,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 public class ChatClient extends WebSocketClient {
 
+    private ChatServer server;
     private ChatClientGUI gui;
     private String nickname;
 
@@ -57,6 +58,8 @@ public class ChatClient extends WebSocketClient {
         String s = "Connect to server: " + getURI();
         logger.debug(s);
         gui.appendMessageBack(null, null, s);
+        // when a client online, it must call server to notify others it's online
+        // server.notify();
     }
 
     @Override
@@ -110,6 +113,10 @@ public class ChatClient extends WebSocketClient {
     }
 
     private void handleRegister(JSONObject jsonObject) {
+        boolean status = jsonObject.getBoolean(StringConstants.REGISTER_STATUS);
+        if (!status) return;
+
+        // else online
         nickname = jsonObject.getString(StringConstants.NICKNAME);
         JSONArray arr = jsonObject.getJSONArray(StringConstants.ONLINE_LIST);
         for (int i = 0; i < arr.length(); i++) {

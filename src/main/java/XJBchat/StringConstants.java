@@ -14,4 +14,5 @@ public class StringConstants {
     public final static String ONLINE_CLIENT = "onlineClient";
     public final static String OFFLINE_CLIENT = "offlineClient";
     public final static String ONLINE_LIST = "onlineList";
+    public static final String REGISTER_STATUS = "registerStatus";
 }

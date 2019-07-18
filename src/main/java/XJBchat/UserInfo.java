@@ -8,6 +8,16 @@ public class UserInfo {
     private String newClient; // change var name
     private Set<String> onlineList;
 
+    public boolean isRegisterStatus() {
+        return registerStatus;
+    }
+
+    public void setRegisterStatus(boolean registerStatus) {
+        this.registerStatus = registerStatus;
+    }
+
+    private boolean registerStatus;
+
     public UserInfo() {}
 
     public UserInfo(String name) {
